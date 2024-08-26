@@ -1,0 +1,127 @@
+---
+title: "STATS 7022 - Data Science PG Assignment 3"
+author: "Dang Thinh Nguyen"
+date: "`r Sys.Date()`"
+output:
+  pdf_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE,
+                      message=FALSE, 
+                      warning = FALSE,
+                      fig.align='center')
+
+pacman::p_load(tidyverse, bookdown, readr, tidymodels)
+```
+
+# **Question 1: Modelling with Data**
+
+## 1 Read in the Data
+
+```{r}
+# Read in the data
+data <- readRDS('./diamonds2.rds')
+
+# Display the first 10 lines of the data
+data %>% head(10)
+```
+
+## 2 Data Splitting
+
+```{r}
+# Set the seed
+set.seed(2024)
+
+# Split data
+data_split <- initial_split(data, strata = price)
+data_train <- training(data_split)
+data_test <- testing(data_split)
+
+# Display the training/testing/total sets
+data_split
+```
+
+## 3 Cross-validation
+
+```{r}
+# Set folds cross-validation
+data_folds <- vfold_cv(data_train, v = 15, strata = price)
+
+# Display the folds
+data_folds
+```
+
+## 4 Recipe
+
+```{r}
+# Set recipe
+data_recipe <- recipe(price ~ ., data = data_train) %>%
+  step_log(price)
+
+# Display the recipe
+data_recipe
+```
+
+## 5 Workflow
+
+```{r}
+# Set model
+rf_model <- rand_forest(mtry = tune(), 
+                        min_n = tune(), 
+                        trees = 500) %>%
+  set_engine('ranger') %>%
+  set_mode('regression')
+
+# Set workflow
+wf <- workflow() %>%
+  add_recipe(data_recipe) %>%
+  add_model(rf_model)
+
+# Display the workflow
+wf
+```
+
+## 6 Model Tuning
+
+```{r data, fig.cap='Comparison of model performance across hyperparameters'}
+# Set candidates
+data_grid <- grid_regular(mtry(c(1,9)),
+                          min_n(),
+                          levels = 5)
+
+# Display the grid
+data_grid
+
+# Tune
+doParallel::registerDoParallel()
+tune_res <- tune_grid(wf,
+                      resamples = data_folds,
+                      grid = data_grid)
+
+# Plot tuning
+tune_res %>% autoplot() +
+  labs(title = 'Tuning results',
+       x = 'Number of predictors')
+
+# Show the top 5 best hyperparameters
+show_best(tune_res, metric = 'rmse')
+
+# Finalize the workflow with the best parameters
+final_workflow <- wf %>%
+  finalize_workflow(select_best(tune_res, metric = 'rmse'))
+
+# Display the final workflow
+final_workflow
+```
+
+## 7 Model fit
+
+```{r}
+# Fit the best model
+final_fit <- last_fit(final_workflow, data_split)
+
+# Evaluate the model on the test data
+final_fit %>%
+  collect_metrics()
+```
