@@ -1,0 +1,52 @@
+---
+title: "Seminar 3: Sandbox"
+author: "Max Glonek"
+date: "Trimester `r if(as.integer(format(Sys.time(),'%m'))<5){1}else if(as.integer(format(Sys.time(),'%m'))<9){2}else{3}`, `r format(Sys.time(),'%Y')`"
+output:
+  bookdown::pdf_document2:
+    toc: no
+    includes:
+      in_header: header.tex
+  bookdown::html_document2: default
+editor_options:
+  chunk_output_type: console
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+ echo = TRUE, 
+ fig.width = 6, 
+ fig.asp = 0.618, 
+ out.width = "70%",
+ fig.align = "center", 
+  root.dir = '../'
+)
+pacman::p_load(tidyverse,tidymodels,bookdown)
+```
+
+# Try it Yourself: Add a Figure
+
+```{r longleyPlot, fig.cap='Scatterplot of Employed vs GNP for the longley dataset', echo=FALSE}
+data("longley")
+plot(Employed ~ GNP, data = longley, col='#3fbf7f', pch=20, cex=2)
+abline(lm(Employed ~ GNP, data = longley), col = '#bf7fff', lwd = 2)
+```
+
+Figure \@ref(fig:longleyPlot) shows a strong, positive, linear relationship between number of employed people and Gross National Product.
+
+# Try it Yourself: Add a Table
+
+```{r toothTab, echo=FALSE}
+data("ToothGrowth")
+ToothGrowth %>%
+  count(supp) %>%
+  knitr::kable(caption = 'TootGrowth factors.')
+```
+
+Table \@ref(tab:toothTab) shows a balanced study design in the ToothGrowth dataset.
+
+# Try it Yourself: Formatting Mathematics
+
+# Try it Yourself: Formatting Environments
+
+# Try it Yourself: Displaying Code You Don't Want to Run
