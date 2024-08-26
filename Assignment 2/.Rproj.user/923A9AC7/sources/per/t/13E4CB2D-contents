@@ -1,0 +1,190 @@
+library(glmx)
+data("BeetleMortality")
+as_tibble(BeetleMortality)
+
+BeetleMortality <- BeetleMortality %>%
+  mutate(prop_died = died / n)
+ggplot(BeetleMortality, aes(x = dose, y = prop_died)) +
+  geom_point() +
+  geom_smooth(se = FALSE)
+
+
+library(titanic)
+library(skimr)
+titanic <- as_tibble(titanic::titanic_train)
+titanic <- titanic %>%
+  mutate(Survived = factor(Survived),
+         Pclass = factor(Pclass),
+         Sex = factor(Sex))
+skim_without_charts(titanic)
+
+titanic_glm <- glm(Survived ~ Age + Sex, family = binomial(), data = titanic)
+summary(titanic_glm)
+
+
+library(MASS)
+data("snails")
+snails <- as_tibble(snails)
+snails
+skim_without_charts(snails)
+help("snails")
+snails_logistic <- glm(cbind(Deaths, N - Deaths) ~ .,
+                       data = snails,
+                       family = binomial())
+cbind(snails$Deaths, snails$N - snails$Deaths)[1:10,]
+summary(snails_logistic)
+snail.odds <- -1.405 + 1.309 * 0 + 1.503 * 2 - 0.107 * 60 + 0.094 * 20
+snail.odds
+predict( snails_logistic,
+         newdata = tibble( Species = "A",
+                           Exposure = 2,
+                           Rel.Hum = 60,
+                           Temp = 20 ) )
+exp(snail.odds)/(1 + exp(snail.odds))
+predict( snails_logistic, 
+         newdata = tibble( Species = "A", 
+                           Exposure = 2, 
+                           Rel.Hum = 60, 
+                           Temp = 20), 
+         type = "response") 
+
+
+nonmel <- read_tsv("MelanomaData.txt")
+nonmel <- within(nonmel, {
+  age_range <- rep(c("15_24","25_34", 
+                     "35_44","45_54", 
+                     "55_64","65_74", 
+                     "75_84","85+" ),
+                   2)
+  age_range <- factor(age_range)
+  age_range <- relevel(age_range, ref = "85+")
+  city <- factor(city, 0:1, c("Minneapolis", "Dallas"))})
+df <- nonmel[c('cases', 'n', 'city', 'age_range')] 
+df
+df_poiss <- glm(cases ~ city + age_range + log(n),
+                family = poisson(link = 'log'),
+                data = df)
+summary(df_poiss)
+
+
+data('medpar', package = 'COUNT')
+skim_without_charts(medpar)
+medpar <- medpar %>%
+  as_tibble() %>%
+  mutate(type1 = NULL,
+         type2 = NULL,
+         type3 = NULL,
+         provnum = NULL,
+         type = as.factor(type))
+medpar
+medpar_p1 <- glm(los ~ .,
+                 data = medpar,
+                 family = poisson(link = 'log'))
+summary(medpar_p1)
+Anova(medpar_p1)
+medpar_p2 <- glm(los ~ hmo + white + died + type,
+                 data = medpar,
+                 family = poisson(link = 'log'))
+summary(medpar_p2)
+new_data <- tibble(hmo = 1,
+                   white = 1,
+                   died = 0,
+                   type = '1')
+predict(medpar_p2, newdata = new_data)
+predict(medpar_p2, newdata = new_data, type = 'response')
+
+
+data('Hitters', package = 'ISLR')
+Hitters <- Hitters %>%
+  as_tibble() %>%
+  drop_na()
+skim(Hitters)
+labels <- tibble(x = c(2, 15, 15), 
+                y = c(125, 50, 200), 
+                label = c('R1', 'R2', 'R3'))
+ggplot(Hitters, aes(x = Years, y = Hits)) +
+  geom_point() +
+  geom_vline(xintercept = 4.5, size = 1) +
+  geom_segment(aes(x = 4.5, y = 117.5, xend = 25, yend = 117.5), size = 1) +
+  geom_label(data = labels, aes(x = x, y = y, label = label))
+
+set.seed(1223)
+h_split <- initial_split(Hitters)
+h_split
+h_train <- training(h_split)
+h_test <- testing(h_split)
+
+reg_tree_spec <- decision_tree(mode = 'regression') %>%
+  set_engine('rpart')
+h_tree <- reg_tree_spec %>%
+  fit(Salary ~ ., data = h_train)
+plot(h_tree$fit)
+text(h_tree$fit, pretty = 0)
+h_tree
+
+library(vip)
+h_tree %>%
+  vip(num_features = 13) +
+  theme_minimal()
+h_tree %>% vi()
+
+h_train_pred <- h_tree %>%
+  predict(new_data = h_train) %>%
+  bind_cols(h_train)
+h_train_pred
+
+h_train_pred %>%
+  metrics(.pred, truth = Salary)
+
+h_test_pred <- h_tree %>%
+  predict(new_data = h_test) %>%
+  bind_cols(h_test)
+h_test_pred %>%
+  metrics(.pred, truth = Salary)
+
+
+# Boston exercise 
+data('Boston', package = 'MASS')
+boston <- as_tibble(Boston)
+boston
+
+set.seed(1234)
+skim(boston)
+boston <- boston %>%
+  mutate(chas = as.factor(chas))
+boston %>% ggplot(aes(x = chas, y = medv)) +
+  geom_boxplot() +
+  theme_minimal()
+boston %>% ggplot(aes(x = rm, y = medv)) +
+  geom_point() +
+  theme_minimal()
+
+# Split data
+b_split <- initial_split(boston)
+b_train <- training(b_split)
+b_test <- testing(b_split)
+
+# Regression tree model
+reg_tree_spec <- decision_tree(mode = 'regression') %>%
+  set_engine('rpart')
+
+# Fit training data
+b_tree <- reg_tree_spec %>%
+  fit(medv ~ ., data = b_train)
+plot(b_tree$fit)
+text(b_tree$fit)
+
+# Check important variables
+b_tree %>%
+  vip(num_features = 12) +
+  theme_minimal()
+
+# Value of them
+b_tree %>% vi()
+
+# Get predictions on test data
+b_test_pred <- b_tree %>%
+  predict(new_data = b_test) %>%
+  bind_cols(b_test)
+b_test_pred %>%
+  metrics(.pred, truth = medv)

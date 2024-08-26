@@ -1,0 +1,43 @@
+---
+title: "STATS 7022 - Data Science PG Assignment 2"
+author: "Dang Thinh Nguyen"
+date: "2024-06-13"
+output:
+  bookdown::pdf_document2:
+    toc: no
+    includes:
+      in_header: header.tex
+  bookdown::html_document2: default
+editor_options:
+  chunk_output_type: console
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+  echo = TRUE, 
+  message=FALSE, 
+  warning = FALSE,
+  fig.dim=c(6,6),
+  fig.align='center',
+  root.dir = '../'
+  )
+```
+
+# **Question 1: Data Analysis**
+
+## 1 Load libraries
+
+```{r}
+pacman::p_load(tidyverse, bookdown, readr, dplyr, tidymodels, pROC)
+```
+
+## 2 Load data
+
+```{r}
+# Read in the data
+data <- readRDS('./diamonds.rds')
+
+# Display the first 10 lines of the data
+head(data, 10)
+```
+
