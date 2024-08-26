@@ -1,0 +1,148 @@
+---
+title: "STATS 7022 - Data Science PG Assignment 1"
+author: "Dang Thinh Nguyen"
+date: "2024-06-13"
+output:
+  bookdown::pdf_document2:
+    toc: no
+    includes:
+      in_header: header.tex
+  bookdown::html_document2: default
+editor_options:
+  chunk_output_type: console
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+  echo = TRUE, 
+  message=FALSE, 
+  warning = FALSE,
+  fig.dim=c(6,6),
+  fig.align='center',
+  root.dir = '../'
+  )
+
+pacman::p_load(tidyverse, bookdown, readr, dplyr)
+```
+
+# **Question 1: Data Analysis**
+
+```{r}
+# Read in the data
+data <- readRDS('./board_game.rds')
+
+# Display the first 10 lines of the data
+head(data, 10)
+```
+
+## (a). Select variables
+
+```{r}
+columns <- c('primary', 'year', 'boardgamemechanic',
+             'minplaytime', 'maxplaytime', 'average')
+data2 <- data %>% select(columns)
+
+# Display the first 10 lines of the data
+head(data2, 10)
+
+# Display the column names
+colnames(data2)
+```
+## (b). Rename **average** to **rating**
+
+```{r}
+data3 <- data2 %>% rename(rating = average)
+
+# Display the first 10 lines of the data
+head(data3, 10)
+colnames(data3)
+```
+## (c). Remove any games released before 2016 or after 2020
+
+```{r}
+data4 <- data3 %>%
+  filter((year >= 2016) & (year <= 2020))
+
+# Display the first 10 lines of the data
+head(data4, 10)
+
+# Display the summary of the year variable
+summary(data4$year)
+```
+## (d). Create **duration** variable and remove any games with zero **duration**
+
+```{r}
+# Create duration variable
+data5 <- data4 %>%
+  mutate(duration = sqrt(minplaytime * maxplaytime))
+
+# Remove zero duration
+data5 <- data5 %>%
+  filter(duration != 0)
+
+# Display the first 10 lines of the data
+head(data5, 10)
+
+# Display the summary of duration variable
+summary(data5$duration)
+```
+
+## (e). Create **dice** variable
+
+```{r}
+data6 <- data5 %>%
+  mutate(
+    dice = ifelse(str_detect(boardgamemechanic, 'Dice'), 'Dice game', 'Not a dice game'),
+    dice = replace_na(dice, 'Not a dice game')
+  )
+
+# Display the first 10 lines of the data
+head(data6, 10)
+
+# Display the count of dice observations
+data6 %>% count(dice)
+```
+## (f). Create **rating_7.5** variable
+
+```{r}
+data7 <- data6 %>%
+  mutate(rating_7.5 = ifelse(rating >= 7.5, TRUE, FALSE))
+
+# Display the first 10 lines of the data
+head(data7, 10)
+
+# Display the count of rating_7.5 observations
+data7 %>% count(rating_7.5)
+```
+
+## (g). Produce boxplots
+
+```{r data7, fig.cap='Side-by-side boxplot of game duration (in minutes) by year, separated by whether or not each game is a dice game, and whether or not each game has a rating of at least 7.5.', fig.label='fig:data7'}
+data7 %>%
+  ggplot(aes(x = factor(year), y = log(duration), fill = rating_7.5)) +
+  geom_boxplot(outlier.shape = 19) +
+  facet_wrap(. ~ dice, nrow = 2) +
+  labs(title = 'Game Duration by Year',
+       subtitle = 'Colour indicates if game has a rating of 7.5 or above.',
+       x = 'Year', 
+       y = 'Duration (minutes)', 
+       fill = expression('Rating' >= 7.5),
+       caption = 'Note: Games without a mechanic have been classified as "Not a dice game".') +
+  scale_y_continuous(
+    breaks = log(c(1, 10, 100, 1000, 10000)),
+    labels = c(1, 10, 100, 1000, 10000)
+  ) +
+  scale_fill_manual(values = c("FALSE" = "#FFDF22", "TRUE" = "#0C8990")) +
+  theme_bw() +
+  theme(
+    #panel.border = element_rect(color = "black", fill = NA, linewidth = 0.3),
+    #strip.background = element_rect(color = "black", fill = 'lightgray', linewidth = 0.3),
+    legend.position = 'bottom'
+  )
+```
+
+
+
+
+
+
